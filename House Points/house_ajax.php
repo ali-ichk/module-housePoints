@@ -24,10 +24,10 @@ $dbh = $connection2;
 
 $houseID = $_POST['houseID'];
 
-$data = array(
+$data = [
     'houseID' => $houseID,
-    'yearID' => $session->get('gibbonSchoolYearID');
-);
+    'yearID' => $session->get('gibbonSchoolYearID'),
+];
 $sql = "SELECT hpPointHouse.hpID, 
     DATE_FORMAT(hpPointHouse.awardedDate, '%d/%m/%Y') AS awardedDate,
     hpPointHouse.points, 
