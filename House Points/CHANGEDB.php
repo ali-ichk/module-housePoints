@@ -128,3 +128,11 @@ INSERT INTO `gibbonPermission` (`gibbonRoleID` ,`gibbonActionID`) VALUES (001, (
 INSERT INTO `gibbonPermission` (`gibbonRoleID` ,`gibbonActionID`) VALUES (002, (SELECT gibbonActionID FROM gibbonAction JOIN gibbonModule ON (gibbonAction.gibbonModuleID=gibbonModule.gibbonModuleID) WHERE gibbonModule.name='House Points' AND gibbonAction.name='View points overall_events'));end
 INSERT INTO `gibbonPermission` (`gibbonRoleID` ,`gibbonActionID`) VALUES (003, (SELECT gibbonActionID FROM gibbonAction JOIN gibbonModule ON (gibbonAction.gibbonModuleID=gibbonModule.gibbonModuleID) WHERE gibbonModule.name='House Points' AND gibbonAction.name='View points overall_events'));end
 ";
+
+//v1.7.05
+++$count;
+$sql[$count][0] = '1.7.05';
+$sql[$count][1] = "
+UPDATE gibbonAction SET name='View points event' WHERE name='View points overall_events' AND gibbonModuleID=(SELECT gibbonModuleID FROM gibbonModule WHERE name='House Points');end
+INSERT INTO gibbonPermission (gibbonRoleID, gibbonActionID) SELECT 1, action.gibbonActionID FROM gibbonAction AS action JOIN gibbonModule ON action.gibbonModuleID=gibbonModule.gibbonModuleID WHERE gibbonModule.name='House Points' AND action.name='View points event' AND NOT EXISTS (SELECT 1 FROM gibbonPermission AS permission WHERE permission.gibbonRoleID=1 AND permission.gibbonActionID=action.gibbonActionID);end
+";

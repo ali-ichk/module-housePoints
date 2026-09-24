@@ -30,7 +30,6 @@ class HousePointStudentGateway extends QueryableGateway
             ->bindValue('studentID', $studentID)
             ->where('hpPointStudent.yearID = :yearID')
             ->bindValue('yearID', $yearID)
-            ->where ('gibbonPerson.status = "Full"')
             ->orderBy(['hpPointStudent.awardedDate']);
 
         return $this->runSelect($select);

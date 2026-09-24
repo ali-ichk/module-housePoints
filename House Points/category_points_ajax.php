@@ -18,33 +18,42 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-include  "../../gibbon.php";
+use Gibbon\Data\Validator;
+use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
 
-$categoryID = isset($_POST['categoryID'])? $_POST['categoryID'] : '';
+require_once '../../gibbon.php';
+
+$_POST = $container->get(Validator::class)->sanitize($_POST);
+
+$categoryID = $_POST['categoryID'] ?? '';
 
 if (empty($categoryID)) {
-    die('');
+    exit();
 }
 
-$data = array('categoryID' => $categoryID);
-$sql = "SELECT categoryPresets FROM hpCategory WHERE categoryID=:categoryID";
-$result = $pdo->executeQuery($data, $sql);
+$housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+$category = $housePointCategoryGateway->getByID($categoryID);
 
-if (!$result || $result->rowCount() == 0) {
-    die('');
-} else {
-    $presets = array();
-    $presetsText = $result->fetchColumn(0);
-    if (empty($presetsText)) {
-        die('');
-    }
-
-    $presetGroups = array_map('trim', explode(',', $presetsText));
-    foreach ($presetGroups as $index => $preset) {
-        $presetValues = array_map('trim', explode(':', $preset));
-        list($name, $points) = array_pad($presetValues, 2, false);
-        $presets[$points.chr(($index+65))] = ($name != $points)? $name.': '.$points.' points' : $points.' points';
-    }
-
-    die(json_encode($presets));
+if (empty($category)) {
+    exit();
 }
+
+$action = $category['categoryType'] === 'House' ? '/modules/House Points/house.php' : '/modules/House Points/award.php';
+
+if (!isActionAccessible($guid, $connection2, $action)) {
+    exit();
+}
+
+$presetsText = $category['categoryPresets'] ?? '';
+if (empty($presetsText)) {
+    exit();
+}
+
+$presets = [];
+foreach (array_map('trim', explode(',', $presetsText)) as $index => $preset) {
+    [$name, $points] = array_pad(array_map('trim', explode(':', $preset)), 2, false);
+    $presets[$points . chr($index + 65)] = $name !== $points ? $name . ': ' . $points . ' points' : $points . ' points';
+}
+
+echo json_encode($presets);
+exit();

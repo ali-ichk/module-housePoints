@@ -18,49 +18,43 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+use Gibbon\Data\Validator;
 use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
 
 require_once '../../gibbon.php';
 
-if (!$session->has('gibbonPersonID') || !$session->has('gibbonRoleIDPrimary')
-    || !isActionAccessible($guid, $connection2, '/modules/House Points/category.php')) {
-    die(__('Your request failed because you do not have access to this action.'));
-} else {
-    $URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/category.php';
-    
-    $categoryName = $_POST['categoryName'] ?? null;
-    $categoryEvent = $_POST['categoryEvent'] ?? null;
-    $categoryType = $_POST['categoryType'] ?? 'House';
-    $categoryPresets = $_POST['categoryPresets'] ?? null;
+$_POST = $container->get(Validator::class)->sanitize($_POST);
 
+$URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/category.php';
 
-    if (( $categoryName || $categoryType) != NULL) {
-        
-        $data = [
-            'categoryName' => $categoryName,
-            'categoryEvent' => $categoryEvent,
-            'categoryType' => $categoryType,
-            'categoryPresets' => $categoryPresets,
-        ];
-        
-        $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
-        $housePointCategoryID = $housePointCategoryGateway->insert($data);
-        if ($housePointCategoryID === false) {
-            $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
-        }
-        //Success 0
-        $URL .= '&return=success0';
-        header("Location: {$URL}");
-        exit();
-    
-    } else {
-        $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
-    }
-  
+if (!isActionAccessible($guid, $connection2, '/modules/House Points/category.php')) {
+    $URL .= '&return=error0';
+    header("Location: {$URL}");
+    exit();
 }
+
+$data = [
+    'categoryName'    => trim($_POST['categoryName'] ?? ''),
+    'categoryEvent'   => trim($_POST['categoryEvent'] ?? ''),
+    'categoryOrder'   => 0,
+    'categoryType'    => $_POST['categoryType'] ?? 'House',
+    'categoryPresets' => trim($_POST['categoryPresets'] ?? ''),
+];
+
+if (empty($data['categoryName']) || empty($data['categoryEvent']) || !in_array($data['categoryType'], ['House', 'Student'], true)) {
+    $URL .= '&return=error2';
+    header("Location: {$URL}");
+    exit();
+}
+
+$housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+$housePointCategoryID = $housePointCategoryGateway->insert($data);
+
+$URL .= $housePointCategoryID === false
+    ? '&return=error2'
+    : '&return=success0';
+
+header("Location: {$URL}");
+exit();
 
 ?>

@@ -18,52 +18,89 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+use Gibbon\Data\Validator;
+use Gibbon\Domain\Students\StudentGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
 use Gibbon\Module\HousePoints\Domain\HousePointStudentGateway;
 
 require_once '../../gibbon.php';
 
-if (!$session->has('gibbonPersonID') || !$session->has('gibbonRoleIDPrimary')
-    || !isActionAccessible($guid, $connection2, '/modules/House Points/award.php')) {
-    die(__('Your request failed because you do not have access to this action.'));
+$_POST = $container->get(Validator::class)->sanitize($_POST);
+
+$URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/award.php';
+
+if (!isActionAccessible($guid, $connection2, '/modules/House Points/award.php')) {
+    $URL .= '&return=error0';
+    header("Location: {$URL}");
+    exit();
 } else {
-    $URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/award.php';
     $housePointStudentGateway = $container->get(HousePointStudentGateway::class);
-    
-    $students = $_POST['students'] ?? [];
-    $categoryID = $_POST['categoryID'] ?? null;
-    $points = $_POST['points'] ?? null;
-    $activity = $_POST['activity'] ?? null;
-    $yearID = $_POST['yearID'] ?? null;
-    $teacherID = $_POST['teacherID'] ?? null;
 
-    if (($students || $categoryID || $points || $activity || $yearID || $teacherID) != NULL) {
-        $data = [
-        'categoryID' => $categoryID,
-        'points' => $points,
-        'activity' => $activity,
-        'yearID' => $yearID,
+    $data = [
+        'categoryID'  => $_POST['categoryID'] ?? '',
+        'points'      => filter_var($_POST['points'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 9999]]),
+        'activity'    => trim($_POST['activity'] ?? ''),
+        'yearID'      => $session->get('gibbonSchoolYearID') ?? '',
         'awardedDate' => date('Y-m-d H:i:s'),
-        'awardedBy' => $teacherID
-        ];
+        'awardedBy'   => $session->get('gibbonPersonID'),
+    ];
+    $students = $_POST['students'] ?? [];
+    $students = is_array($students) ? array_unique(array_filter($students, 'ctype_digit')) : [];
 
-        foreach ($students as $studentID) {
-            $data['studentID'] = $studentID;
-            $housePointStudentID = $housePointStudentGateway->insert($data);
+    $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+    $category = $housePointCategoryGateway->selectBy(['categoryID' => $data['categoryID'], 'categoryType' => 'Student'])->fetch();
 
-            if ($housePointStudentID === false) {
-                $URL .= '&return=error2';
-                header("Location: {$URL}");
-                exit();
-            }
-        }       
-        // Success 0
-        $URL .= '&return=success0';
-        header("Location: {$URL}");
-        exit();
-    } else {
+    if (empty($students) || empty($data['categoryID']) || $data['points'] === false || empty($data['activity']) || empty($category)) {
         $URL .= '&return=error2';
         header("Location: {$URL}");
         exit();
     }
+
+    $unlimitedPoints = getHighestGroupedAction($guid, '/modules/House Points/award.php', $connection2) === 'Award student points_unlimited';
+    $pointsAreValid = $unlimitedPoints;
+
+    foreach (explode(',', $category['categoryPresets'] ?? '') as $preset) {
+        $presetValues = explode(':', $preset);
+        $presetPoints = trim(end($presetValues));
+
+        if (ctype_digit($presetPoints) && (int) $presetPoints === $data['points']) {
+            $pointsAreValid = true;
+            break;
+        }
+    }
+
+    if (!$pointsAreValid) {
+        $URL .= '&return=error2';
+        header("Location: {$URL}");
+        exit();
+    }
+
+    $studentGateway = $container->get(StudentGateway::class);
+
+    foreach ($students as $studentID) {
+        if (empty($studentGateway->selectActiveStudentByPerson($data['yearID'], $studentID)->fetch())) {
+            $URL .= '&return=error2';
+            header("Location: {$URL}");
+            exit();
+        }
+    }
+
+    $pdo->beginTransaction();
+
+    foreach ($students as $studentID) {
+        $data['studentID'] = $studentID;
+        if ($housePointStudentGateway->insert($data) === false) {
+            $pdo->rollBack();
+            $URL .= '&return=error2';
+            header("Location: {$URL}");
+            exit();
+        }
+    }
+
+    $pdo->commit();
+
+    $URL .= '&return=success0';
+    header("Location: {$URL}");
+    exit();
 }
 ?>

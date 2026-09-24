@@ -24,17 +24,15 @@ use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
 
 require_once __DIR__ . '/moduleFunctions.php';
 
-$page->breadcrumbs->add(__('Award house points'));
+$page->breadcrumbs->add(__('Award student points'));
 if (isActionAccessible($guid, $connection2,"/modules/House Points/award.php")==FALSE) {
     // Acess denied
     $page->addError(__('You do not have access to this action.'));
 } else {
         $form = Form::create('awardForm', $session->get('absoluteURL') . '/modules/' . $session->get('module') . '/studentPointsProcess.php', 'post');
         $form->setFactory(DatabaseFormFactory::create($pdo));
-        $form->setTitle('Award house points to house');
+        $form->setTitle(__('Award student points'));
         $form->addHiddenValue('address', $session->get('address'));
-        $form->addHiddenValue('yearID', $session->get('gibbonSchoolYearID'));
-        $form->addHiddenValue('teacherID', $session->get('gibbonPersonID'));
     
         // Select Multiple Students
         $row = $form->addRow();
@@ -44,8 +42,8 @@ if (isActionAccessible($guid, $connection2,"/modules/House Points/award.php")==F
                     ->required()
                     ->mergeGroupings();
 
-        $highestAction = getHighestGroupedAction($guid, '/modules/House Points/house.php', $connection2);
-        $unlimitedPoints = ($highestAction == 'Award house points_unlimited');
+        $highestAction = getHighestGroupedAction($guid, '/modules/House Points/award.php', $connection2);
+        $unlimitedPoints = ($highestAction == 'Award student points_unlimited');
         
         $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
         $hpCategories = $housePointCategoryGateway->selectBy(['categoryType' => 'Student']);

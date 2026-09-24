@@ -1,5 +1,10 @@
 CHANGELOG
 =========
+v1.7.05
+-------
+Fixed event-view permissions and house points not appearing in Manage Points
+Prevented deletion of categories with existing point records
+
 v1.7.04
 -------
 Added a new View Points By Events Page

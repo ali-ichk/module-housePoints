@@ -18,50 +18,60 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+use Gibbon\Data\Validator;
 use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointHouseGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointStudentGateway;
 
 require_once '../../gibbon.php';
 
-if (!$session->has('gibbonPersonID') || !$session->has('gibbonRoleIDPrimary')
-    || !isActionAccessible($guid, $connection2, '/modules/House Points/category.php')) {
-    die(__('Your request failed because you do not have access to this action.'));
-} else {
-    $URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/category.php';
-    
-    $categoryID = $_POST['categoryID'] ?? null;
-    $categoryName = $_POST['categoryName'] ?? null;
-    $categoryEvent = $_POST['categoryEvent'] ?? null;
-    $categoryType = $_POST['categoryType'] ?? 'House';
-    $categoryPresets = $_POST['categoryPresets'] ?? null;
+$_POST = $container->get(Validator::class)->sanitize($_POST);
 
+$URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/category.php';
 
-    if (($categoryID || $categoryName || $categoryType) != NULL) {
-        
-        $data = [
-            'categoryName' => $categoryName,
-            'categoryEvent' => $categoryEvent,
-            'categoryType' => $categoryType,
-            'categoryPresets' => $categoryPresets,
-        ];
-        
-        $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
-        $housePointCategoryID = $housePointCategoryGateway->update($categoryID, $data);
-        if ($housePointCategoryID === false) {
-            $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
-        }
-        //Success 0
-        $URL .= '&return=success0';
+if (!isActionAccessible($guid, $connection2, '/modules/House Points/category.php')) {
+    $URL .= '&return=error0';
+    header("Location: {$URL}");
+    exit();
+}
+
+$categoryID = $_POST['categoryID'] ?? '';
+$data = [
+    'categoryName'    => trim($_POST['categoryName'] ?? ''),
+    'categoryEvent'   => trim($_POST['categoryEvent'] ?? ''),
+    'categoryType'    => $_POST['categoryType'] ?? 'House',
+    'categoryPresets' => trim($_POST['categoryPresets'] ?? ''),
+];
+
+$housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+$category = $housePointCategoryGateway->getByID($categoryID);
+
+if (empty($categoryID) || empty($category) || empty($data['categoryName']) || empty($data['categoryEvent']) || !in_array($data['categoryType'], ['House', 'Student'], true)) {
+    $URL .= '&return=error2';
+    header("Location: {$URL}");
+    exit();
+}
+
+if ($category['categoryType'] !== $data['categoryType']) {
+    $housePointHouseGateway = $container->get(HousePointHouseGateway::class);
+    $housePointStudentGateway = $container->get(HousePointStudentGateway::class);
+    $housePoints = $housePointHouseGateway->selectBy(['categoryID' => $categoryID])->fetch();
+    $studentPoints = $housePointStudentGateway->selectBy(['categoryID' => $categoryID])->fetch();
+
+    if (!empty($housePoints) || !empty($studentPoints)) {
+        $URL .= '&return=error2';
         header("Location: {$URL}");
         exit();
-    
-    } else {
-        $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
     }
-  
 }
+
+$housePointCategoryID = $housePointCategoryGateway->update($categoryID, $data);
+
+$URL .= $housePointCategoryID === false
+    ? '&return=error2'
+    : '&return=success0';
+
+header("Location: {$URL}");
+exit();
 
 ?>

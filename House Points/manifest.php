@@ -25,7 +25,7 @@ $description = "Module to allow allocating and display of house points." ;
 $entryURL = "overall.php" ;
 $type = "Additional" ;
 $category = "Learn" ;
-$version = "1.7.04";
+$version = "1.7.05";
 $author = "Gibbon Foundation";
 $url = "https://gibbonedu.org";
 
@@ -242,12 +242,14 @@ $actionRows[9]["categoryPermissionStudent"]="N" ;
 $actionRows[9]["categoryPermissionParent"]="N" ;
 $actionRows[9]["categoryPermissionOther"]="N" ;
 
-$actionRows[10]["name"]="View points overall_events" ;
+$actionRows[10]["name"]="View points event" ;
 $actionRows[10]["precedence"]="4";
 $actionRows[10]["category"]="View" ;
 $actionRows[10]["description"]="View points for each house and students by events." ;
 $actionRows[10]["URLList"]="overall_events.php" ;
 $actionRows[10]["entryURL"]="overall_events.php" ;
+$actionRows[10]["entrySidebar"]="Y" ;
+$actionRows[10]["menuShow"]="Y" ;
 $actionRows[10]["defaultPermissionAdmin"]="Y" ;
 $actionRows[10]["defaultPermissionTeacher"]="Y" ;
 $actionRows[10]["defaultPermissionStudent"]="Y" ;
@@ -260,8 +262,8 @@ $actionRows[10]["categoryPermissionParent"]="Y" ;
 $actionRows[10]["categoryPermissionOther"]="Y" ;
 
 // Add some default categories
-$gibbonSetting[0]="INSERT INTO `hpCategory` (`categoryID`, `categoryName`, `categoryOrder`, `categoryType`, `categoryPresets`) VALUES ('0', '-- Unlimited House Points --', '0', 'House', '')";
-$gibbonSetting[1]="INSERT INTO `hpCategory` (`categoryID`, `categoryName`, `categoryOrder`, `categoryType`, `categoryPresets`) VALUES ('0', '-- Unlimited Student Points --', '0', 'Student', '')";
+$gibbonSetting[0]="INSERT INTO `hpCategory` (`categoryID`, `categoryName`, `categoryEvent`, `categoryOrder`, `categoryType`, `categoryPresets`) VALUES ('0', '-- Unlimited House Points --', '', '0', 'House', '')";
+$gibbonSetting[1]="INSERT INTO `hpCategory` (`categoryID`, `categoryName`, `categoryEvent`, `categoryOrder`, `categoryType`, `categoryPresets`) VALUES ('0', '-- Unlimited Student Points --', '', '0', 'Student', '')";
 
 
 $array = array();

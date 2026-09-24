@@ -30,10 +30,8 @@ if (isActionAccessible($guid, $connection2,"/modules/House Points/house.php")==F
     $page->addError(__('You do not have access to this action.'));
 } else {
         $form = Form::create('awardForm', $session->get('absoluteURL') . '/modules/' . $session->get('module') . '/housePointsProcess.php', 'post');
-        $form->setTitle('Award house points to house');
+        $form->setTitle(__('Award house points'));
         $form->addHiddenValue('address', $session->get('address'));
-        $form->addHiddenValue('yearID', $session->get('gibbonSchoolYearID'));
-        $form->addHiddenValue('teacherID', $session->get('gibbonPersonID'));
 
         $sql = "SELECT gibbonHouse.gibbonHouseID AS value, gibbonHouse.name FROM gibbonHouse ORDER BY gibbonHouse.name";
         $row = $form->addRow();

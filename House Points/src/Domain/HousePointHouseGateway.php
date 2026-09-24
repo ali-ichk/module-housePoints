@@ -109,7 +109,7 @@ class HousePointHouseGateway extends QueryableGateway
             ->innerJoin('hpCategory','hpCategory.categoryID = hpPointHouse.categoryID')
             ->innerJoin('gibbonPerson','gibbonPerson.gibbonPersonID = hpPointHouse.awardedBy')
             ->innerJoin('gibbonHouse','gibbonHouse.gibbonHouseID = hpPointHouse.houseID')
-            ->where('gibbonHouse.name = :houseID')
+            ->where('hpPointHouse.houseID = :houseID')
             ->bindValue('houseID', $houseID)
             ->where('hpPointHouse.yearID = :gibbonSchoolYearID')
             ->bindValue('gibbonSchoolYearID', $gibbonSchoolYearID)
