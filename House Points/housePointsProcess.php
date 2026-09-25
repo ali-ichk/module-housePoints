@@ -18,52 +18,71 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+use Gibbon\Data\Validator;
+use Gibbon\Domain\School\HouseGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
 use Gibbon\Module\HousePoints\Domain\HousePointHouseGateway;
 
 require_once '../../gibbon.php';
 
-if (!$session->has('gibbonPersonID') || !$session->has('gibbonRoleIDPrimary')
-    || !isActionAccessible($guid, $connection2, '/modules/House Points/house.php')) {
-    die(__('Your request failed because you do not have access to this action.'));
-} else {
-    $URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/house.php';
-    
-    $houseID = $_POST['houseID'] ?? null;
-    $categoryID = $_POST['categoryID'] ?? null;
-    $points = $_POST['points'] ?? null;
-    $activity = $_POST['activity'] ?? null;
-    $yearID = $_POST['yearID'] ?? null;
-    $teacherID = $_POST['teacherID'] ?? null;
+$_POST = $container->get(Validator::class)->sanitize($_POST);
 
-    if (($houseID || $categoryID || $points || $activity || $yearID || $teacherID) != NULL) {
-        $data = [
-        'houseID' => $houseID,
-        'categoryID' => $categoryID,
-        'points' => $points,
-        'activity' => $activity,
-        'yearID' => $yearID,
+$URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/house.php';
+
+if (!isActionAccessible($guid, $connection2, '/modules/House Points/house.php')) {
+    $URL .= '&return=error0';
+    header("Location: {$URL}");
+    exit();
+} else {
+    $data = [
+        'houseID'     => $_POST['houseID'] ?? '',
+        'categoryID'  => $_POST['categoryID'] ?? '',
+        'points'      => filter_var($_POST['points'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 9999]]),
+        'activity'    => trim($_POST['activity'] ?? ''),
+        'yearID'      => $session->get('gibbonSchoolYearID') ?? '',
         'awardedDate' => date('Y-m-d'),
-        'awardedBy' => $teacherID
-        ];
-        
-        $housePointHouseGateway = $container->get(HousePointHouseGateway::class);
-        $housePointHouseID = $housePointHouseGateway->insert($data);
-        if ($housePointHouseID === false) {
-            $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
-        }
-        //Success 0
-        $URL .= '&return=success0';
+        'awardedBy'   => $session->get('gibbonPersonID'),
+    ];
+
+    $houseGateway = $container->get(HouseGateway::class);
+    $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+    $house = $houseGateway->getByID($data['houseID']);
+    $category = $housePointCategoryGateway->selectBy(['categoryID' => $data['categoryID'], 'categoryType' => 'House'])->fetch();
+
+    if (empty($data['houseID']) || empty($data['categoryID']) || $data['points'] === false || empty($data['activity']) || empty($house) || empty($category)) {
+        $URL .= '&return=error2';
         header("Location: {$URL}");
         exit();
-    
-    } else {
-        $URL .= '&return=error2';
-            header("Location: {$URL}");
-            exit();
     }
-  
+
+    $unlimitedPoints = getHighestGroupedAction($guid, '/modules/House Points/house.php', $connection2) === 'Award house points_unlimited';
+    $pointsAreValid = $unlimitedPoints;
+
+    foreach (explode(',', $category['categoryPresets'] ?? '') as $preset) {
+        $presetValues = explode(':', $preset);
+        $presetPoints = trim(end($presetValues));
+
+        if (ctype_digit($presetPoints) && (int) $presetPoints === $data['points']) {
+            $pointsAreValid = true;
+            break;
+        }
+    }
+
+    if (!$pointsAreValid) {
+        $URL .= '&return=error2';
+        header("Location: {$URL}");
+        exit();
+    }
+
+    $housePointHouseGateway = $container->get(HousePointHouseGateway::class);
+    $housePointHouseID = $housePointHouseGateway->insert($data);
+
+    $URL .= $housePointHouseID === false
+        ? '&return=error2'
+        : '&return=success0';
+
+    header("Location: {$URL}");
+    exit();
 }
 
 ?>

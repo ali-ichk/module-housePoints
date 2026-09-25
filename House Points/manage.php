@@ -34,7 +34,6 @@ if (isActionAccessible($guid, $connection2,"/modules/House Points/manage.php")==
     
     $form = Form::create('individualPoints', '');
     $form->setFactory(DatabaseFormFactory::create($pdo));
-    $form->addHiddenValue('yearID', $session->get('gibbonSchoolYearID'));
     
     $form->setTitle('Points');
     
@@ -63,9 +62,11 @@ if (isActionAccessible($guid, $connection2,"/modules/House Points/manage.php")==
     echo $form->getOutput();
     
     
-    if(isset($_POST['studentID'])){
+    $yearID = $session->get('gibbonSchoolYearID');
+
+    if ($option === 'Student' && !empty($studentID)) {
         $housePointStudentGateway = $container->get(HousePointStudentGateway::class);
-        $housePoints = $housePointStudentGateway->selectStudentPoints($_POST['studentID'], $_POST['yearID'])->fetchAll();
+        $housePoints = $housePointStudentGateway->selectStudentPoints($studentID, $yearID)->fetchAll();
 
         $table = DataTable::create('housePoints');
         $table->setTitle('House Points');
@@ -85,9 +86,9 @@ if (isActionAccessible($guid, $connection2,"/modules/House Points/manage.php")==
         
     }
     
-    if(isset($_POST['houseID'])){
+    if ($option === 'House' && !empty($houseID)) {
         $housePointHouseGateway = $container->get(HousePointHouseGateway::class);
-        $housePoints = $housePointHouseGateway->selectHousePoints($_POST['houseID'], $_POST['yearID'])->fetchAll();
+        $housePoints = $housePointHouseGateway->selectHousePoints($houseID, $yearID)->fetchAll();
 
         $table = DataTable::create('housePoints');
         $table->setTitle('House Points');

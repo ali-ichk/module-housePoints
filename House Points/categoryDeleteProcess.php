@@ -19,9 +19,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+use Gibbon\Data\Validator;
 use Gibbon\Module\HousePoints\Domain\HousePointCategoryGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointHouseGateway;
+use Gibbon\Module\HousePoints\Domain\HousePointStudentGateway;
 
 require_once '../../gibbon.php';
+
+$_POST = $container->get(Validator::class)->sanitize($_POST);
 
 $URL = $session->get('absoluteURL') . '/index.php?q=/modules/' . $session->get('module') . '/category.php';
 
@@ -29,27 +34,33 @@ if (!isActionAccessible($guid, $connection2, '/modules/House Points/category.php
     $URL .= '&return=error0';
     header("Location: {$URL}");
     exit();
-} else {
-    
-    $categoryID = $_POST['categoryID'] ?? '';
+}
 
-    $housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
-    
-    
-    if (empty($categoryID) || !$housePointCategoryGateway->exists($categoryID)) {
-        $URL .= '&return=error1';
-        header("Location: {$URL}");
-        exit();
-    }
+$categoryID = $_POST['categoryID'] ?? '';
+$housePointCategoryGateway = $container->get(HousePointCategoryGateway::class);
+$category = $housePointCategoryGateway->getByID($categoryID);
 
-    if (!$housePointCategoryGateway->delete($categoryID)) {
-        $URL .= '&return=error2';
-        header("Location: {$URL}");
-        exit();
-    }
-
-    $URL .= '&return=success0';
+if (empty($categoryID) || empty($category)) {
+    $URL .= '&return=error1';
     header("Location: {$URL}");
     exit();
 }
+
+$housePointHouseGateway = $container->get(HousePointHouseGateway::class);
+$housePointStudentGateway = $container->get(HousePointStudentGateway::class);
+$housePoints = $housePointHouseGateway->selectBy(['categoryID' => $categoryID])->fetch();
+$studentPoints = $housePointStudentGateway->selectBy(['categoryID' => $categoryID])->fetch();
+
+if (!empty($housePoints) || !empty($studentPoints)) {
+    $URL .= '&return=error1';
+    header("Location: {$URL}");
+    exit();
+}
+
+$URL .= $housePointCategoryGateway->delete($categoryID)
+    ? '&return=success0'
+    : '&return=error2';
+
+header("Location: {$URL}");
+exit();
 ?>
